@@ -5,7 +5,7 @@ import pandas as pd
 
 def load_data(fname="data/dataset_mood_smartphone.csv")
     # Lees data in
-    data = pd.read_csv("data/dataset_mood_smartphone.csv", index_col=0)
+    data = pd.read_csv(fname, index_col=0)
 
     # Verander time column naar dates
     data["time"] = pd.to_datetime(data["time"])
@@ -19,7 +19,7 @@ def pivot_average_data(data):
     pandas table to use day and user id as index.
     """
     # Default aggregation is taking the mean.
-    new_dataset = data = data.pivot_table(
+    new_dataset = data.pivot_table(
         values=["value"], columns="variable", index=["time", "id"]
     )
 
