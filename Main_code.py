@@ -3,7 +3,8 @@
 # Import packages
 import pandas as pd
 
-def load_data(fname="data/dataset_mood_smartphone.csv")
+
+def load_data(fname="data/dataset_mood_smartphone.csv"):
     # Lees data in
     data = pd.read_csv(fname, index_col=0)
 
@@ -12,6 +13,7 @@ def load_data(fname="data/dataset_mood_smartphone.csv")
     data["time"] = data["time"].dt.date
 
     return data
+
 
 def pivot_average_data(data):
     """
@@ -40,3 +42,8 @@ def normalize_data(data):
         )
 
     return new_dataset
+
+
+raw_data = load_data()
+data = pivot_average_data(raw_data)
+norm_data = normalised(data)
