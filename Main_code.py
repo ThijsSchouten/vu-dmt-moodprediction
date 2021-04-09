@@ -46,4 +46,4 @@ def normalize_data(data):
 
 raw_data = load_data()
 data = pivot_average_data(raw_data)
-norm_data = normalised(data)
+norm_data = normalize_data(data)
