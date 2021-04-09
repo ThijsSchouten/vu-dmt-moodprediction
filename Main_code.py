@@ -2,6 +2,7 @@
 
 # Import packages
 import pandas as pd
+from math import isnan
 
 
 def load_data(fname="data/dataset_mood_smartphone.csv"):
@@ -44,6 +45,20 @@ def normalize_data(data):
     return new_dataset
 
 
+def impute_missing_values(data, ids):
+    """
+    Imputes missing values with the mean over
+    that variable for that user.
+    """
+    mean_df = pd.DataFrame(index=ids, columns=data.value.columns)
+    for id in ids:
+        for column in data:
+            mean = data.xs(id, level="id")[column].mean()
+            data.xs(id, level="id")[column].fillna(value=mean, inplace=True)
+
+
 raw_data = load_data()
+ids = list(set(raw_data["id"]))
+ids.sort()
 data = pivot_average_data(raw_data)
 norm_data = normalize_data(data)
