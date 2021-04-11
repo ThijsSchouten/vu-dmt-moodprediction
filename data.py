@@ -4,6 +4,7 @@
 import pandas as pd
 from math import isnan
 import numpy as np
+from datetime import date, timedelta
 
 
 def load_data(fname="data/dataset_mood_smartphone.csv"):
@@ -67,10 +68,42 @@ def impute_missing_values(data, ids):
             data.loc[id][column].fillna(value=mean, inplace=True)
 
 
-raw_data = load_data()
-ids = list(set(raw_data["id"]))
-ids.sort()
-data = pivot_average_data(raw_data)
-remove_moodless_days(data)
-impute_missing_values(data, ids)
-norm_data = normalize_data(data)
+def preprocess_raw_data(data):
+    """
+    Takes raw data as input, imputes missing values, normalizes the data
+    and returns the updated dataset.
+    """
+    raw_data = load_data()
+    ids = list(set(raw_data["id"]))
+    ids.sort()
+    data = pivot_average_data(raw_data)
+    remove_moodless_days(data)
+    impute_missing_values(data, ids)
+    norm_data = normalize_data(data)
+
+    return norm_data
+
+
+def get_consecutive_days(data, ids, no_days=5):
+    # Create timdelta depending on the number of days
+    td = timedelta(no_days)
+
+    # Initialize list for start-and end day tuples.
+    start_end_list = []
+
+    for index, ((id, date), content) in enumerate(data.iterrows()):
+        # Check if going down a number of rows result in the
+        # same difference in date.
+        new_index = index + no_days
+        if new_index >= len(data):
+            break
+        new_date = date + td
+        if data.index[new_index] == (id, new_date):
+            start_end = ((id, date), (id, new_date))
+            start_end_list.append(start_end)
+
+    return start_end_list
+
+
+def get_aggregated_split(data):
+    return 0
