@@ -1,6 +1,6 @@
 # Code for Data Mining Techniques project period 5 2020/2021 VU
 
-# Import packages
+# %% Import packages
 import pandas as pd
 from math import isnan
 import numpy as np
@@ -68,15 +68,49 @@ def impute_missing_values(data, ids):
             data.loc[id][column].fillna(value=mean, inplace=True)
 
 
+def filter_outliers(raw_data, threshold=3600*3):
+    """
+    Filters outliers from raw data, by:
+        - Removing negative app durations
+        - Setting app durations above threshold to
+          a specified threshold value
+
+    Args: 
+        raw_data (df): The raw data.
+        threshold (int): Threshold value (default 3h)
+    
+    Returns:
+        df: The filtered data
+    """
+    df = raw_data.copy()
+
+    # Get the appCat categories
+    all_features = df.variable.unique()
+    features = [x for x in all_features if 'appCat' in x]
+
+    # Remove negative values in the appCat categories
+    non_neg_idx = df[(df.value < 0) & (df.variable.isin(features))].index
+    df.drop(non_neg_idx, inplace=True)
+
+    # Set values above threshold to threshold value
+    # for all but the appCat.builtin category
+    features.remove('appCat.builtin')
+    outlier_idx = df[(df.value > threshold) & (df.variable.isin(features))].index
+    df.loc[outlier_idx, "value"] = threshold
+
+    return df
+
+
 def preprocess_raw_data():
     """
     Takes raw data as input, imputes missing values, normalizes the data
     and returns the updated dataset.
     """
     raw_data = load_data()
-    ids = list(set(raw_data["id"]))
+    filtered_data = filter_outliers(raw_data)
+    ids = list(set(filtered_data["id"]))
     ids.sort()
-    data = pivot_average_data(raw_data)
+    data = pivot_average_data(filtered_data)
     remove_moodless_days(data)
     impute_missing_values(data, ids)
     norm_data = normalize_data(data)
@@ -156,3 +190,9 @@ def get_aggregated_data(no_days=5):
         instances.append(instance), labels.append(label)
 
     return instances, labels
+
+# Read & Aggregate data 
+# if script is called directly
+if __name__ == "__main__":
+    instances, labels = get_aggregated_data()
+# %%
