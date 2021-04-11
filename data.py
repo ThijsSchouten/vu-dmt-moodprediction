@@ -68,7 +68,7 @@ def impute_missing_values(data, ids):
             data.loc[id][column].fillna(value=mean, inplace=True)
 
 
-def preprocess_raw_data(data):
+def preprocess_raw_data():
     """
     Takes raw data as input, imputes missing values, normalizes the data
     and returns the updated dataset.
@@ -84,26 +84,75 @@ def preprocess_raw_data(data):
     return norm_data
 
 
-def get_consecutive_days(data, ids, no_days=5):
+# def get_consecutive_days(data, ids, no_days=5):
+#     # Create timdelta depending on the number of days
+#     td = timedelta(no_days)
+
+#     # Initialize list for start-and end day tuples.
+#     start_end_list = []
+
+#     for index, ((patient, date), content) in enumerate(data.iterrows()):
+#         # Check if going down a number of rows result in the
+#         # same difference in date.
+#         new_index = index + no_days
+#         if new_index >= len(data):
+#             break
+#         new_date = date + td
+#         if data.index[new_index] == (patient, new_date):
+#             start_end = ((patient, date), (patient, new_date))
+#             start_end_list.append(start_end)
+
+#     return start_end_list
+
+
+def get_consecutive_days(data, no_days=5, overlap=True):
     # Create timdelta depending on the number of days
     td = timedelta(no_days)
+    td_1 = timedelta(1)
 
     # Initialize list for start-and end day tuples.
     start_end_list = []
 
-    for index, ((id, date), content) in enumerate(data.iterrows()):
-        # Check if going down a number of rows result in the
-        # same difference in date.
+    # Loop over all rows in the dataframe
+    index = 0
+    while True:
+        patient, date = data.index[index]
         new_index = index + no_days
+
+        # Check for index out of bounds
         if new_index >= len(data):
             break
-        new_date = date + td
-        if data.index[new_index] == (id, new_date):
-            start_end = ((id, date), (id, new_date))
-            start_end_list.append(start_end)
+
+        # Get the patient and date if we go down no_days rows
+        new_patient, new_date = data.index[new_index]
+
+        # Check if going down a number of rows result in the
+        # same id and same difference in date, then we want
+        # this datapoint and we save it.
+        if (patient, date + td) == (new_patient, new_date):
+            start_end_target = (
+                (patient, date),
+                (patient, new_date - td_1),
+                (patient, new_date),
+            )
+            start_end_list.append(start_end_target)
+
+        # If there is overlap we go one row down, otherwise
+        # we make sure to jump to the last day of the current
+        # sequence
+        index += 1 if overlap else no_days - 1
 
     return start_end_list
 
 
-def get_aggregated_split(data):
-    return 0
+def get_aggregated_data(no_days=5):
+    data = preprocess_raw_data()
+    start_end_list = get_consecutive_days(data, no_days=no_days)
+    instances, labels = [], []
+    for start, end, target in start_end_list:
+        data_slice = data.loc[start:end]
+        instance = np.array(data_slice.mean())
+        label = data.loc[target, ("value", "mood")]
+        instances.append(instance), labels.append(label)
+
+    return instances, labels
