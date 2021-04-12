@@ -243,7 +243,7 @@ def get_baseline_data(no_days=5):
     for _, last_day, target in start_end_list:
         instance = data.loc[last_day, ("value", "mood")]
         label = data.loc[target, ("value", "mood")]
-        instances.append(instance), label.append(label)
+        instances.append(instance), labels.append(label)
 
     return instances, labels
 

@@ -8,7 +8,7 @@ def baseline_predictor(instance):
 
 def evaluate_model(model, instances, labels):
     pred = model(instances)
-    mse = ((pred - labels) ** 2).mean(axis=ax)
+    mse = ((pred - labels) ** 2).mean()
     return mse
 
 
@@ -17,8 +17,9 @@ def run_baseline_model(no_days=5):
     split = int(0.8 * len(instances))
     test_data, test_labels = instances[split:], labels[split:]
     model = baseline_predictor
-    evaluate_model(model, test_data, test_labels)
+    return evaluate_model(model, np.array(test_data), np.array(test_labels))
 
 
 if __name__ == "__main__":
-    run_baseline_model()
+    mse = run_baseline_model()
+    print(mse)
