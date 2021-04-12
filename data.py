@@ -18,17 +18,49 @@ def load_data(fname="data/dataset_mood_smartphone.csv"):
     return data
 
 
-def pivot_average_data(data):
+def pivot_aggregate_data(data):
     """
     Averages all values per day and pivots
     pandas table to use day and user id as index.
     """
     # Default aggregation is taking the mean.
-    new_dataset = data.pivot_table(
-        values=["value"], columns="variable", index=["id", "time"]
+    new_df = data.pivot_table(
+        values=["value"],
+        columns="variable",
+        aggfunc={'value': [sum, np.mean]},
+        index=["id", "time"]
     )
 
-    return new_dataset
+    # Declare the aggregation type per variable
+    to_keep = dict({'activity': 'sum',
+                    'appCat.builtin': 'sum',
+                    'appCat.communication': 'sum',
+                    'appCat.entertainment': 'sum',
+                    'appCat.finance': 'sum',
+                    'appCat.game': 'sum',
+                    'appCat.office': 'sum',
+                    'appCat.other': 'sum',
+                    'appCat.social': 'sum',
+                    'appCat.travel': 'sum',
+                    'appCat.unknown': 'sum',
+                    'appCat.utilities': 'sum',
+                    'appCat.weather': 'sum',
+                    'call': 'sum',
+                    'circumplex.arousal': 'mean',
+                    'circumplex.valence': 'mean',
+                    'mood': 'mean',
+                    'screen': 'sum',
+                    'sms': 'sum'})
+
+    # Drop the other variables from the df
+    selected_features = [x for x in new_df.columns
+                         if to_keep.get(x[2]) == x[1]]
+    new_df = new_df[selected_features]
+
+    # Drop the aggregation name multiindex level
+    new_df = new_df.droplevel(1, axis=1)
+
+    return new_df
 
 
 def normalize_data(data):
@@ -94,10 +126,9 @@ def filter_outliers(raw_data, threshold=3600 * 3):
 
     # Set values above threshold to threshold value
     # for all but the appCat.builtin category
-    features.remove("appCat.builtin")
-    outlier_idx = df[
-        (df.value > threshold) & (df.variable.isin(features))
-    ].index
+    features.remove('appCat.builtin')
+    outlier_idx = df[(df.value > threshold) & (
+        df.variable.isin(features))].index
     df.loc[outlier_idx, "value"] = threshold
 
     return df
@@ -112,7 +143,7 @@ def preprocess_raw_data(normalize=True):
     filtered_data = filter_outliers(raw_data)
     ids = list(set(filtered_data["id"]))
     ids.sort()
-    data = pivot_average_data(filtered_data)
+    data = pivot_aggregate_data(filtered_data)
     remove_moodless_days(data)
     impute_missing_values(data, ids)
     if normalize:
@@ -195,6 +226,7 @@ def get_aggregated_data(no_days=5):
     return instances, labels
 
 
+<<<<<<< HEAD
 def get_baseline_data(no_days=5):
     data = preprocess_raw_data(normalize=False)
 
@@ -211,8 +243,9 @@ def get_baseline_data(no_days=5):
     return instances, labels
 
 
+=======
+>>>>>>> 00bf9d9afd9a6ae3a9708bb899834a1982fe479a
 # Read & Aggregate data
 # if script is called directly
 if __name__ == "__main__":
     instances, labels = get_aggregated_data()
-# %%
