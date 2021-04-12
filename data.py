@@ -68,17 +68,17 @@ def impute_missing_values(data, ids):
             data.loc[id][column].fillna(value=mean, inplace=True)
 
 
-def filter_outliers(raw_data, threshold=3600*3):
+def filter_outliers(raw_data, threshold=3600 * 3):
     """
     Filters outliers from raw data, by:
         - Removing negative app durations
         - Setting app durations above threshold to
           a specified threshold value
 
-    Args: 
+    Args:
         raw_data (df): The raw data.
         threshold (int): Threshold value (default 3h)
-    
+
     Returns:
         df: The filtered data
     """
@@ -86,7 +86,7 @@ def filter_outliers(raw_data, threshold=3600*3):
 
     # Get the appCat categories
     all_features = df.variable.unique()
-    features = [x for x in all_features if 'appCat' in x]
+    features = [x for x in all_features if "appCat" in x]
 
     # Remove negative values in the appCat categories
     non_neg_idx = df[(df.value < 0) & (df.variable.isin(features))].index
@@ -94,14 +94,16 @@ def filter_outliers(raw_data, threshold=3600*3):
 
     # Set values above threshold to threshold value
     # for all but the appCat.builtin category
-    features.remove('appCat.builtin')
-    outlier_idx = df[(df.value > threshold) & (df.variable.isin(features))].index
+    features.remove("appCat.builtin")
+    outlier_idx = df[
+        (df.value > threshold) & (df.variable.isin(features))
+    ].index
     df.loc[outlier_idx, "value"] = threshold
 
     return df
 
 
-def preprocess_raw_data():
+def preprocess_raw_data(normalize=True):
     """
     Takes raw data as input, imputes missing values, normalizes the data
     and returns the updated dataset.
@@ -113,9 +115,10 @@ def preprocess_raw_data():
     data = pivot_average_data(filtered_data)
     remove_moodless_days(data)
     impute_missing_values(data, ids)
-    norm_data = normalize_data(data)
+    if normalize:
+        data = normalize_data(data)
 
-    return norm_data
+    return data
 
 
 # def get_consecutive_days(data, ids, no_days=5):
@@ -191,7 +194,24 @@ def get_aggregated_data(no_days=5):
 
     return instances, labels
 
-# Read & Aggregate data 
+
+def get_baseline_data(no_days=5):
+    data = preprocess_raw_data(normalize=False)
+
+    # We still use the no_days variable here because
+    # we want to use the same test days as for the
+    # other models
+    start_end_list = get_consecutive_days(data, no_days=no_days)
+    instances, labels = [], []
+    for _, last_day, target in start_end_list:
+        instance = data.loc[last_day, ("value", "mood")]
+        label = data.loc[target, ("value", "mood")]
+        instances.append(instance), label.append(label)
+
+    return instances, labels
+
+
+# Read & Aggregate data
 # if script is called directly
 if __name__ == "__main__":
     instances, labels = get_aggregated_data()
