@@ -73,9 +73,9 @@ def normalize_data(data):
     Normalizes data using min-max scaling
     """
     new_dataset = data.copy()
-    # All values except the 'call' and 'sms' column
-    # need to be normalised.
-    rel_columns = data.columns.drop([("value", "sms"), ("value", "call")])
+    
+    # Normalize all columns
+    rel_columns = data.columns #.drop([("value", "sms"), ("value", "call")])
     for column in rel_columns:
         new_dataset[column] = (data[column] - data[column].min()) / (
             data[column].max() - data[column].min()
@@ -252,3 +252,5 @@ def get_baseline_data(no_days=5):
 # if script is called directly
 if __name__ == "__main__":
     instances, labels = get_aggregated_data()
+
+# %%
