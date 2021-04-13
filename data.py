@@ -2,9 +2,14 @@
 
 # %% Import packages
 import pandas as pd
-from math import isnan
 import numpy as np
-from datetime import date, timedelta
+
+from pickle import dump, load
+from math import isnan
+
+from datetime import timedelta
+
+from sklearn.preprocessing import MinMaxScaler
 
 
 def load_data(fname="data/dataset_mood_smartphone.csv"):
@@ -68,20 +73,39 @@ def pivot_aggregate_data(data):
     return new_df
 
 
-def normalize_data(data):
+def normalize_data(data, scaler_fp='scalers/scaler.pkl'):
     """
     Normalizes data using min-max scaling
     """
-    new_dataset = data.copy()
-    
-    # Normalize all columns
-    rel_columns = data.columns #.drop([("value", "sms"), ("value", "call")])
-    for column in rel_columns:
-        new_dataset[column] = (data[column] - data[column].min()) / (
-            data[column].max() - data[column].min()
-        )
 
-    return new_dataset
+    # Set scaler and prepare copy of data
+    scaler = MinMaxScaler()
+    df = data.copy()
+
+    # Seperate target variable
+    target = ('value', 'mood')
+    cols_to_norm = df.columns.drop([target])
+
+    # Scale variables seperately
+    df[cols_to_norm] = scaler.fit_transform(df[cols_to_norm])
+    df[[target]] = scaler.fit_transform(df[[target]])
+
+    # If filepath specified- save mood scaler
+    if isinstance(scaler_fp, str):
+        dump(scaler, open(scaler_fp, 'wb'))
+
+    return df
+
+
+def inverse_normalization(labels, scaler_fp='scalers/scaler.pkl'):
+    """
+    Loads scaler and applies inverserve
+    normalisation to labels.
+    """
+    scaler = load(open(scaler_fp, 'rb'))
+    labels = scaler.inverse_transform([labels])
+
+    return labels
 
 
 def remove_moodless_days(data):
