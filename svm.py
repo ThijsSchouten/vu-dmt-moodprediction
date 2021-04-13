@@ -23,9 +23,9 @@ def evaluate_model(model, instances, labels):
     the MSE. 
     """
     prediction = model.predict(instances)
-    # prediction = [x * 10 for x in prediction]
-    # labels = [x * 10 for x in labels]
-    return mean_squared_error(labels, prediction)
+    prediction_inv = inverse_normalization(prediction)
+    labels_inv = inverse_normalization(labels)
+    return mean_squared_error(labels_inv, prediction_inv)
 
 
 def grid_search(instances, labels, cv=6):
@@ -72,9 +72,6 @@ def shuffle_dataset(instances, labels, seed=4):
     instances, labels = zip(*data)
 
     return instances, labels
-
-def reverse_normalization():
-    pass
 
 def run_svm_model(grid_search=False, no_days=5):
     # Get the data and shuffle
