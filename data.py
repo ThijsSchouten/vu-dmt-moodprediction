@@ -68,9 +68,7 @@ def pivot_aggregate_data(data):
     )
 
     # Drop the other variables from the df
-    selected_features = [
-        x for x in new_df.columns if to_keep.get(x[2]) == x[1]
-    ]
+    selected_features = [x for x in new_df.columns if to_keep.get(x[2]) == x[1]]
     new_df = new_df[selected_features]
 
     # Drop the aggregation name multiindex level
@@ -79,7 +77,7 @@ def pivot_aggregate_data(data):
     return new_df
 
 
-def normalize_data(data, scaler_fp='scalers/scaler.pkl'):
+def normalize_data(data, scaler_fp="scalers/scaler.pkl"):
     """
     Normalizes data using min-max scaling
     """
@@ -89,7 +87,7 @@ def normalize_data(data, scaler_fp='scalers/scaler.pkl'):
     df = data.copy()
 
     # Seperate target variable
-    target = ('value', 'mood')
+    target = ("value", "mood")
     cols_to_norm = df.columns.drop([target])
 
     # Scale variables seperately
@@ -98,17 +96,17 @@ def normalize_data(data, scaler_fp='scalers/scaler.pkl'):
 
     # If filepath specified- save mood scaler
     if isinstance(scaler_fp, str):
-        dump(scaler, open(scaler_fp, 'wb'))
+        dump(scaler, open(scaler_fp, "wb"))
 
     return df
 
 
-def inverse_normalization(labels, scaler_fp='scalers/scaler.pkl'):
+def inverse_normalization(labels, scaler_fp="scalers/scaler.pkl"):
     """
     Loads scaler and applies inverserve
     normalisation to labels.
     """
-    scaler = load(open(scaler_fp, 'rb'))
+    scaler = load(open(scaler_fp, "rb"))
     labels = scaler.inverse_transform([labels])
 
     return labels
@@ -162,9 +160,7 @@ def filter_outliers(raw_data, threshold=3600 * 3):
     # Set values above threshold to threshold value
     # for all but the appCat.builtin category
     features.remove("appCat.builtin")
-    outlier_idx = df[
-        (df.value > threshold) & (df.variable.isin(features))
-    ].index
+    outlier_idx = df[(df.value > threshold) & (df.variable.isin(features))].index
     df.loc[outlier_idx, "value"] = threshold
 
     return df
@@ -179,17 +175,15 @@ def add_night_features(filtered_data, start_time=2, end_time=5):
     df = filtered_data.copy()
 
     # Extract night features
-    night = df[(df.hour >= start_time) &
-               (df.hour <= end_time) &
-               (df.value > 0)]
+    night = df[(df.hour >= start_time) & (df.hour <= end_time) & (df.value > 0)]
 
     # Filter activity
-    activity = night[night.variable == 'activity'].copy()
-    activity['variable'] = 'activity_night'
+    activity = night[night.variable == "activity"].copy()
+    activity["variable"] = "activity_night"
 
     # Filter screentime
-    screen = night[night.variable == 'screen'].copy()
-    screen['variable'] = 'screen_night'
+    screen = night[night.variable == "screen"].copy()
+    screen["variable"] = "screen_night"
 
     # Add back to DF
     merged = pd.concat([df, activity, screen])
