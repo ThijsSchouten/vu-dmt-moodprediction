@@ -17,7 +17,7 @@ from sklearn.model_selection import GridSearchCV
 from keras.wrappers.scikit_learn import KerasRegressor
 
 
-LOOK_BACK = 8 # Constant for how many days there should be looked back
+LOOK_BACK = 3 # Constant for how many days there should be looked back
 
 def create_dataset(dataset, look_back= LOOK_BACK):
     dataX, dataY = [], []
