@@ -1,6 +1,7 @@
 # Code for Data Mining Techniques project period 5 2020/2021 VU
 
 # %% Import packages
+from numpy.core.arrayprint import SubArrayFormat
 import pandas as pd
 import numpy as np
 
@@ -18,6 +19,7 @@ def load_data(fname="data/dataset_mood_smartphone.csv"):
 
     # Verander time column naar dates
     data["time"] = pd.to_datetime(data["time"])
+    data["hour"] = data["time"].dt.hour
     data["time"] = data["time"].dt.date
 
     return data
@@ -28,18 +30,21 @@ def pivot_aggregate_data(data):
     Averages all values per day and pivots
     pandas table to use day and user id as index.
     """
+
     # Default aggregation is taking the mean.
     new_df = data.pivot_table(
         values=["value"],
         columns="variable",
-        aggfunc={"value": [sum, np.mean]},
+        aggfunc={"value": [sum, np.mean, "count"]},
         index=["id", "time"],
     )
 
+    # print(new_df.columns)
     # Declare the aggregation type per variable
     to_keep = dict(
         {
             "activity": "sum",
+            "activity_night": "sum",
             "appCat.builtin": "sum",
             "appCat.communication": "sum",
             "appCat.entertainment": "sum",
@@ -52,19 +57,18 @@ def pivot_aggregate_data(data):
             "appCat.unknown": "sum",
             "appCat.utilities": "sum",
             "appCat.weather": "sum",
-            "call": "sum",
+            "call": "count",
             "circumplex.arousal": "mean",
             "circumplex.valence": "mean",
             "mood": "mean",
-            "screen": "sum",
+            "screen": "count",
+            "screen_night": "count",
             "sms": "sum",
         }
     )
 
     # Drop the other variables from the df
-    selected_features = [
-        x for x in new_df.columns if to_keep.get(x[2]) == x[1]
-    ]
+    selected_features = [x for x in new_df.columns if to_keep.get(x[2]) == x[1]]
     new_df = new_df[selected_features]
 
     # Drop the aggregation name multiindex level
@@ -73,7 +77,7 @@ def pivot_aggregate_data(data):
     return new_df
 
 
-def normalize_data(data, scaler_fp='scalers/scaler.pkl'):
+def normalize_data(data, scaler_fp="scalers/scaler.pkl"):
     """
     Normalizes data using min-max scaling
     """
@@ -83,7 +87,7 @@ def normalize_data(data, scaler_fp='scalers/scaler.pkl'):
     df = data.copy()
 
     # Seperate target variable
-    target = ('value', 'mood')
+    target = ("value", "mood")
     cols_to_norm = df.columns.drop([target])
 
     # Scale variables seperately
@@ -92,17 +96,17 @@ def normalize_data(data, scaler_fp='scalers/scaler.pkl'):
 
     # If filepath specified- save mood scaler
     if isinstance(scaler_fp, str):
-        dump(scaler, open(scaler_fp, 'wb'))
+        dump(scaler, open(scaler_fp, "wb"))
 
     return df
 
 
-def inverse_normalization(labels, scaler_fp='scalers/scaler.pkl'):
+def inverse_normalization(labels, scaler_fp="scalers/scaler.pkl"):
     """
     Loads scaler and applies inverserve
     normalisation to labels.
     """
-    scaler = load(open(scaler_fp, 'rb'))
+    scaler = load(open(scaler_fp, "rb"))
     labels = scaler.inverse_transform([labels])
 
     return labels
@@ -156,15 +160,42 @@ def filter_outliers(raw_data, threshold=3600 * 3):
     # Set values above threshold to threshold value
     # for all but the appCat.builtin category
     features.remove("appCat.builtin")
-    outlier_idx = df[
-        (df.value > threshold) & (df.variable.isin(features))
-    ].index
+    outlier_idx = df[(df.value > threshold) & (df.variable.isin(features))].index
     df.loc[outlier_idx, "value"] = threshold
 
     return df
 
 
-def preprocess_raw_data(normalize=True):
+def add_night_features(filtered_data, start_time=2, end_time=5):
+    """ 
+    Duplicates activity & screen records 
+    if between start_time and end_time.
+    Adds _night to the variable name.
+    """
+    df = filtered_data.copy()
+
+    # Extract night features
+    night = df[(df.hour >= start_time) & (df.hour <= end_time) & (df.value > 0)]
+
+    # Filter activity
+    activity = night[night.variable == "activity"].copy()
+    activity["variable"] = "activity_night"
+
+    # Filter screentime
+    screen = night[night.variable == "screen"].copy()
+    screen["variable"] = "screen_night"
+
+    # Add back to DF
+    merged = pd.concat([df, activity, screen])
+
+    # Check if everything went well..
+    assert df.shape[1] == merged.shape[1]
+    assert merged.shape[0] == df.shape[0] + activity.shape[0] + screen.shape[0]
+
+    return merged
+
+
+def preprocess_raw_data(normalize=True, sleep_indication=True):
     """
     Takes raw data as input, imputes missing values, normalizes the data
     and returns the updated dataset.
@@ -173,9 +204,14 @@ def preprocess_raw_data(normalize=True):
     filtered_data = filter_outliers(raw_data)
     ids = list(set(filtered_data["id"]))
     ids.sort()
+
+    if sleep_indication:
+        filtered_data = add_night_features(filtered_data)
+
     data = pivot_aggregate_data(filtered_data)
     remove_moodless_days(data)
     impute_missing_values(data, ids)
+
     if normalize:
         data = normalize_data(data)
 
