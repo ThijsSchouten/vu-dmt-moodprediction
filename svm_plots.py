@@ -78,6 +78,3 @@ plot.set_title("SVR score (MSE) per aggregation level (days) - 100 runs.")
 plot.set_ylim(0.325, 0.45)
 
 # %%
-
-
-# %%
