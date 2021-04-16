@@ -25,7 +25,35 @@ def load_data(fname="data/dataset_mood_smartphone.csv"):
     return data
 
 
-def pivot_aggregate_data(data):
+def get_featurelist():
+    return dict(
+        {
+            "activity": "sum",
+            "activity_night": "sum",
+            "mood": "mean",
+            "circumplex.arousal": "mean",
+            "circumplex.valence": "mean",
+            "appCat.builtin": "sum",
+            "appCat.communication": "sum",
+            "appCat.entertainment": "sum",
+            "appCat.finance": "sum",
+            "appCat.game": "sum",
+            "appCat.office": "sum",
+            "appCat.other": "sum",
+            "appCat.social": "sum",
+            "appCat.travel": "sum",
+            "appCat.unknown": "sum",
+            "appCat.utilities": "sum",
+            "appCat.weather": "sum",
+            "call": "sum",
+            "screen": "count",
+            "screen_night": "count",
+            "sms": "sum",
+        }
+    )
+
+
+def pivot_aggregate_data(data, excluded_features={}):
     """
     Averages all values per day and pivots
     pandas table to use day and user id as index.
@@ -41,31 +69,8 @@ def pivot_aggregate_data(data):
 
     # print(new_df.columns)
     # Declare the aggregation type per variable
-    to_keep = dict(
-        {
-            "activity": "sum",
-            "activity_night": "sum",
-            "appCat.builtin": "sum",
-            "appCat.communication": "sum",
-            "appCat.entertainment": "sum",
-            "appCat.finance": "sum",
-            "appCat.game": "sum",
-            "appCat.office": "sum",
-            "appCat.other": "sum",
-            "appCat.social": "sum",
-            "appCat.travel": "sum",
-            "appCat.unknown": "sum",
-            "appCat.utilities": "sum",
-            "appCat.weather": "sum",
-            "call": "count",
-            "circumplex.arousal": "mean",
-            "circumplex.valence": "mean",
-            "mood": "mean",
-            "screen": "count",
-            "screen_night": "count",
-            "sms": "sum",
-        }
-    )
+    featurelist = get_featurelist()
+    to_keep = {k: v for k, v in featurelist.items() if k not in excluded_features}
 
     # Drop the other variables from the df
     selected_features = [x for x in new_df.columns if to_keep.get(x[2]) == x[1]]
@@ -195,11 +200,12 @@ def add_night_features(filtered_data, start_time=2, end_time=5):
     return merged
 
 
-def preprocess_raw_data(normalize=True, sleep_indication=True):
+def preprocess_raw_data(normalize=True, sleep_indication=True, excluded_features={}):
     """
     Takes raw data as input, imputes missing values, normalizes the data
     and returns the updated dataset.
     """
+
     raw_data = load_data()
     filtered_data = filter_outliers(raw_data)
     ids = list(set(filtered_data["id"]))
@@ -208,7 +214,7 @@ def preprocess_raw_data(normalize=True, sleep_indication=True):
     if sleep_indication:
         filtered_data = add_night_features(filtered_data)
 
-    data = pivot_aggregate_data(filtered_data)
+    data = pivot_aggregate_data(filtered_data, excluded_features=excluded_features)
     remove_moodless_days(data)
     impute_missing_values(data, ids)
 
@@ -216,27 +222,6 @@ def preprocess_raw_data(normalize=True, sleep_indication=True):
         data = normalize_data(data)
 
     return data
-
-
-# def get_consecutive_days(data, ids, no_days=5):
-#     # Create timdelta depending on the number of days
-#     td = timedelta(no_days)
-
-#     # Initialize list for start-and end day tuples.
-#     start_end_list = []
-
-#     for index, ((patient, date), content) in enumerate(data.iterrows()):
-#         # Check if going down a number of rows result in the
-#         # same difference in date.
-#         new_index = index + no_days
-#         if new_index >= len(data):
-#             break
-#         new_date = date + td
-#         if data.index[new_index] == (patient, new_date):
-#             start_end = ((patient, date), (patient, new_date))
-#             start_end_list.append(start_end)
-
-#     return start_end_list
 
 
 def get_consecutive_days(data, no_days=5, overlap=True):
@@ -279,8 +264,10 @@ def get_consecutive_days(data, no_days=5, overlap=True):
     return start_end_list
 
 
-def get_aggregated_data(no_days=5):
-    data = preprocess_raw_data()
+def get_aggregated_data(no_days=5, excluded_features={}):
+
+    data = preprocess_raw_data(excluded_features=excluded_features)
+
     start_end_list = get_consecutive_days(data, no_days=no_days)
     instances, labels = [], []
     for start, end, target in start_end_list:
