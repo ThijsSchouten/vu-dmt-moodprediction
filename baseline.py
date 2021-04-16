@@ -13,16 +13,16 @@ def evaluate_model(model, instances, labels):
     return mse
 
 
-def run_baseline_model(no_days=5):
-    instances, labels = get_baseline_data(no_days=no_days)`
+def run_baseline_model(no_days=1):
+    instances, labels = get_baseline_data(no_days=no_days)
     indices = np.arange(len(instances))
     split = int(0.8 * len(instances))
-    test_data, test_labels = (
-        instances[indices][split:],
-        labels[indices][split:],
-    )
+    # test_data, test_labels = (
+    #     instances[indices][split:],
+    #     labels[indices][split:],
+    # )
     model = baseline_predictor
-    return evaluate_model(model, np.array(test_data), np.array(test_labels))
+    return evaluate_model(model, np.array(instances), np.array(labels))
 
 
 if __name__ == "__main__":
